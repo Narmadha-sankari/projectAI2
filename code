@@ -1,0 +1,124 @@
+import pandas as pd
+# Load your earthquake data into a DataFrame
+data = pd.read_csv('earthquake_data.csv')
+# Explore the data and create an object for key features
+class Earthquake:
+    def __init__(self, date, time, latitude, longitude, depth, magnitude):
+        self.date = date
+        self.time = time
+        self.latitude = latitude
+        self.longitude = longitude
+        self.depth = depth
+        self.magnitude = magnitude
+
+# Create objects for each earthquake
+earthquakes = []
+for index, row in data.iterrows():
+eq = Earthquake(row['date'], row['time'], row['latitude'], row['longitude'], row['depth'], row['magnitude'])
+earthquakes.append(eq)
+from mpl_toolkits.basemap import Basemap
+import matplotlib.pyplot as plt
+# Visualize earthquake data on a world map
+plt.figure(figsize=(12, 9))
+map_plotter = Basemap()
+for eq in earthquakes:
+    x, y = map_plotter(eq.longitude, eq.latitude)
+    map_plotter.plot(x, y, 'ro', markersize=eq.magnitude, alpha=0.5)
+map_plotter.drawcoastlines()
+plt.title('Earthquake Frequency Worldwide')
+plt.show()
+from sklearn.model_selection  import  train_test_split
+# Extract features and target variable
+features = ['latitude', 'longitude', 'depth']
+X = data[features]
+y = data['magnitude']
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.wrappers.scikit_learn import KerasRegressor
+from sklearn.model_selection import GridSearchCV
+
+# Define the neural network model
+def create_model(optimizer='adam', neurons=10):
+    model = Sequential()
+    model.add(Dense(neurons, input_dim=3, activation='relu'))
+    model.add(Dense(1, activation='linear'))
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
+    return model
+
+# Create KerasRegressor for GridSearchCV
+model = KerasRegressor(build_fn=create_model, epochs=10, batch_size=5, verbose=0)
+
+# Define hyperparameters grid for tuning
+param_grid = {
+    'optimizer': ['adam', 'rmsprop'],
+    'neurons': [5, 10, 15]
+}
+
+# Perform Grid Search with cross-validation to find the best hyperparameters
+grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=3)
+grid_result = grid.fit(X_train, y_train)
+
+# Print the best hyperparameters found by Grid Search
+print('Best Hyperparameters:', grid_result.best_params_)
+
+# Build the final model with best hyperparameters
+best_model = create_model(optimizer=grid_result.best_params_['optimizer'], neurons=grid_result.best_params_['neurons'])
+best_model.fit(X_train, y_train, epochs=100, batch_size=5, verbose=0)
+# Evaluate the model on the test set
+loss = best_model.evaluate(X_test, y_test)
+print('Mean Squared Error on Test Set:', loss)
+# Feature Engineering
+earthquake_df['hour'] = earthquake_df['time'].apply(lambda x: x.hour)
+earthquake_df['month'] = earthquake_df['date'].apply(lambda x: x.month)
+earthquake_df['day'] = earthquake_df['date'].apply(lambda x: x.day)
+
+# Drop unnecessary columns
+earthquake_df.drop(['date', 'time'], axis=1, inplace=True)
+
+# Split the data into features (X) and target variable (y)
+features = ['latitude', 'longitude', 'depth', 'hour', 'month', 'day']
+X = earthquake_df[features]
+y = earthquake_df['magnitude']
+
+# Feature Scaling
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# Define the neural network model with feature engineering
+def create_model(optimizer='adam', neurons=10):
+    model = Sequential()
+    model.add(Dense(neurons, input_dim=X_train.shape[1], activation='relu'))
+    model.add(Dense(1, activation='linear'))
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
+    return model
+
+# Create KerasRegressor for GridSearchCV
+model = KerasRegressor(build_fn=create_model, epochs=10, batch_size=5, verbose=0)
+
+# Define hyperparameters grid for tuning
+param_grid = {
+    'optimizer': ['adam', 'rmsprop'],
+    'neurons': [5, 10, 15]
+}
+
+# Perform Grid Search with cross-validation to find the best hyperparameters
+grid = GridSearchCV(estimator=model, param_grid=param_grid, cv=3)
+grid_result = grid.fit(X_train, y_train)
+
+# Print the best hyperparameters found by Grid Search
+print('Best Hyperparameters:', grid_result.best_params_)
+
+# Build the final model with best hyperparameters
+best_model = create_model(optimizer=grid_result.best_params_['optimizer'], neurons=grid_result.best_params_['neurons'])
+best_model.fit(X_train, y_train, epochs=100, batch_size=5, verbose=0)
+
+# Evaluate the model on the test set
+loss = best_model.evaluate(X_test, y_test)
+print('Mean Squared Error on Test Set:', loss)
+
+
